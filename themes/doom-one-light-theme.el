@@ -119,7 +119,7 @@ determine the exact padding."
    (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
 
    (mode-line
-    :background modeline-bg :foreground modeline-fg
+    :background modeline-bg :foreground modeline-fg :overline "#cccccc"
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg)))
    (mode-line-inactive
     :background modeline-bg-inactive :foreground modeline-fg-alt
