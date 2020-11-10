@@ -1,4 +1,4 @@
-;;; doom-solarized-dark-theme.el --- inspired by VS Code Solarized Dark
+;;; doom-solarized-dark-theme.el --- inspired by VS Code Solarized Dark -*- no-byte-compile: t; -*-
 (require 'doom-themes)
 
 ;;
@@ -13,6 +13,11 @@
 
 (defcustom doom-solarized-dark-brighter-comments nil
   "If non-nil, comments will be highlighted in more vivid colors."
+  :group 'doom-solarized-dark-theme
+  :type 'boolean)
+
+(defcustom doom-solarized-dark-brighter-text nil
+  "If non-nil, default text will be brighter."
   :group 'doom-solarized-dark-theme
   :type 'boolean)
 
@@ -33,19 +38,21 @@ determine the exact padding."
   "A dark theme inspired by VS Code Solarized Dark"
 
   ;; name        default   256       16
-  ((bg         '("#002b36" nil       nil            ))
-   (bg-alt     '("#00212B" nil       nil           ))
-   (base0      '("#073642" "black"   "black"       ))
-   (base1      '("#03282F" "#1e1e1e" "brightblack" ))
-   (base2      '("#00212C" "#2e2e2e" "brightblack" ))
-   (base3      '("#13383C" "#262626" "brightblack" ))
-   (base4      '("#56697A" "#3f3f3f" "brightblack" ))
-   (base5      '("#405A61" "#525252" "brightblack" ))
-   (base6      '("#96A7A9" "#6b6b6b" "brightblack" ))
-   (base7      '("#788484" "#979797" "brightblack" ))
-   (base8      '("#626C6C" "#dfdfdf" "white"       ))
-   (fg-alt     '("#657b83" "#2d2d2d" "white"       ))
-   (fg         '("#839496" "#bfbfbf" "brightwhite" ))
+  ((bg         '("#002b36" "#002b36"       nil     ))
+   (bg-alt     '("#00212B" "#00212B"       nil     ))
+   (base0      '("#073642" "#073642"   "black"     ))
+   (base1      '("#03282F" "#03282F" "brightblack" ))
+   (base2      '("#00212C" "#00212C" "brightblack" ))
+   (base3      '("#13383C" "#13383C" "brightblack" ))
+   (base4      '("#56697A" "#56697A" "brightblack" ))
+   (base5      '("#405A61" "#405A61" "brightblack" ))
+   (base6      '("#96A7A9" "#96A7A9" "brightblack" ))
+   (base7      '("#788484" "#788484" "brightblack" ))
+   (base8      '("#626C6C" "#626C6C" "white"       ))
+   (fg-alt     '("#657b83" "#657b83" "white"       ))
+   (fg         (if doom-solarized-dark-brighter-text
+		   '("#BBBBBB" "#BBBBBB" "brightwhite")
+		   '("#839496" "#839496" "brightwhite")))
 
    (grey       base4)
    (red        '("#dc322f" "#ff6655" "red"          ))
@@ -74,13 +81,13 @@ determine the exact padding."
    (operators      orange)
    (type           yellow)
    (strings        cyan)
-   (variables      violet)
+   (variables      fg)
    (numbers        magenta)
    (region         base0)
    (error          red)
    (warning        yellow)
    (success        green)
-   (vc-modified    orange)
+   (vc-modified    yellow)
    (vc-added       green)
    (vc-deleted     red)
 
@@ -113,19 +120,30 @@ determine the exact padding."
    ((line-number &override) :foreground base4)
    ((line-number-current-line &override) :foreground fg)
 
+   (helm-selection :inherit 'bold
+                   :background selection
+                   :distant-foreground bg
+                   :extend t)
+
    (font-lock-comment-face
     :foreground comments
     :background (if doom-solarized-dark-comment-bg (doom-lighten bg 0.05)))
    (font-lock-doc-face
     :inherit 'font-lock-comment-face
     :foreground doc-comments)
+   (font-lock-keyword-face
+    :weight 'bold
+    :foreground keywords)
+   (font-lock-constant-face
+    :weight 'bold
+    :foreground constants)
 
    ;; Centaur tabs
    (centaur-tabs-active-bar-face :background blue)
    (centaur-tabs-modified-marker-selected :inherit 'centaur-tabs-selected
-					  :foreground blue)
+                                          :foreground blue)
    (centaur-tabs-modified-marker-unselected :inherit 'centaur-tabs-unselected
-					    :foreground blue)
+                                            :foreground blue)
    ;; Doom modeline
    (doom-modeline-bar :background blue)
 
@@ -163,7 +181,7 @@ determine the exact padding."
    ((markdown-italic-face &override) :foreground fg-alt)
 
    ;; outline (affects org-mode)
-   ((outline-1 &override) :foreground blue :background nil)
+   ((outline-1 &override) :foreground blue)
    ((outline-2 &override) :foreground green)
    ((outline-3 &override) :foreground teal)
    ((outline-4 &override) :foreground (doom-darken blue 0.2))
@@ -173,10 +191,9 @@ determine the exact padding."
    ((outline-8 &override) :foreground (doom-darken green 0.4))
 
    ;; org-mode
-   (org-hide              :foreground hidden)
-   (org-block             :background base0)
-   (org-block-begin-line  :foreground comments :background base0)
-   (org-block-end-line    :inherit 'org-block-begin-line)
+   ((org-block &override) :background base0)
+   ((org-block-begin-line &override) :foreground comments :background base0)
+   (org-hide :foreground hidden)
    (solaire-org-hide-face :foreground hidden))
   ;; --- extra variables ---------------------
   ;; ()

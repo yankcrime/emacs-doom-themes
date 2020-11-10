@@ -25,17 +25,42 @@ variable-pitch face."
                 (const :doc "A colorful icon theme leveraging all-the-icons" "doom-colors"))
   :group 'doom-themes-treemacs)
 
+(defcustom doom-themes-treemacs-bitmap-indicator-width 3
+  "Default treemacs bitmap indicators width"
+  :type 'integer
+  :group 'doom-themes-treemacs)
+
+;;
+;;; Faces
+(defface doom-themes-treemacs-root-face
+  '((t (:inherit font-lock-string-face)))
+  "Face used for the root icon in doom themes' treemacs theme."
+  :group 'doom-themes-treemacs)
+
+(defface doom-themes-treemacs-file-face
+  '((t (:inherit font-lock-doc-face :slant normal)))
+  "Face used for the directory and file icons in doom themes' treemacs theme."
+  :group 'doom-themes-treemacs)
+
 ;;
 ;;; Library
 
-(defun doom-themes-hide-fringes ()
-  "Remove fringes in currnent window."
+(defun doom-themes-hide-fringes-maybe ()
+  "Remove fringes in current window if `treemacs-fringe-indicator-mode' is nil"
   (when (display-graphic-p)
-    (set-window-fringes nil 0 0)))
+    (if treemacs-fringe-indicator-mode
+        (set-window-fringes nil doom-themes-treemacs-bitmap-indicator-width 0)
+      (set-window-fringes nil 0 0))))
 
 (defun doom-themes-setup-tab-width (&rest _)
   "Set `tab-width' to 1, so tab characters don't ruin formatting."
   (setq tab-width 1))
+
+(defun doom-themes-define-treemacs-fringe-indicator-bitmap ()
+  "Defines `treemacs--fringe-indicator-bitmap'"
+  (if (fboundp 'define-fringe-bitmap)
+      (define-fringe-bitmap 'treemacs--fringe-indicator-bitmap
+        (make-vector 26 #b111) nil doom-themes-treemacs-bitmap-indicator-width)))
 
 (defun doom-themes-setup-line-spacing ()
   "Set `line-spacing' in treemacs buffers."
@@ -65,9 +90,9 @@ variable-pitch face."
 
 (defun doom-themes-fix-treemacs-icons-dired-mode ()
   "Set `tab-width' to 1 in dired-mode if `treemacs-icons-dired-mode' is active."
-  (if treemacs-icons-dired-mode
-      (add-hook 'dired-mode-hook #'doom-themes-setup-tab-width nil t)
-    (remove-hook 'dired-mode-hook #'doom-themes-setup-tab-width t)))
+  (funcall (if treemacs-icons-dired-mode #'add-hook #'remove-hook)
+           'dired-mode-hook
+           #'doom-themes-setup-tab-width))
 
 (defun doom-themes--get-treemacs-extensions (ext)
   "Expand the extension pattern EXT into a list of extensions.
@@ -83,7 +108,7 @@ This is used to generate extensions for `treemacs' from `all-the-icons-icon-alis
     (when-let* ((s (s-split "\\[\\|\\]" e))
                 (f (car s))
                 (m (cadr s))
-                (l (caddr s))
+                (l (cadr (cdr s)))
                 (mcs (delete "" (s-split "" m))))
       (setq exts nil)
       (dolist (c mcs)
@@ -109,6 +134,7 @@ This is used to generate extensions for `treemacs' from `all-the-icons-icon-alis
 
   (add-hook 'treemacs-mode-hook #'doom-themes-setup-tab-width)
   (add-hook 'treemacs-mode-hook #'doom-themes-setup-line-spacing)
+  (add-hook 'treemacs-mode-hook #'doom-themes-define-treemacs-fringe-indicator-bitmap)
 
   ;; Fix #293: tabs messing up formatting in `treemacs-icons-dired-mode'
   (add-hook 'treemacs-icons-dired-mode-hook #'doom-themes-fix-treemacs-icons-dired-mode)
@@ -118,20 +144,20 @@ This is used to generate extensions for `treemacs' from `all-the-icons-icon-alis
 
   ;; Disable fringes (and reset them everytime treemacs is selected because it
   ;; may change due to outside factors)
-  (add-hook 'treemacs-mode-hook #'doom-themes-hide-fringes)
-  (advice-add #'treemacs-select-window :after #'doom-themes-hide-fringes)
+  (add-hook 'treemacs-mode-hook #'doom-themes-hide-fringes-maybe)
+  (advice-add #'treemacs-select-window :after #'doom-themes-hide-fringes-maybe)
 
   ;; variable-pitch labels for files/folders
   (doom-themes-enable-treemacs-variable-pitch-labels)
   (advice-add #'load-theme :after #'doom-themes-enable-treemacs-variable-pitch-labels)
 
   ;; minimalistic atom-inspired icon theme
-  (let ((face-spec '(:inherit font-lock-doc-face :slant normal)))
+  (let ((face-spec 'doom-themes-treemacs-file-face))
     (treemacs-create-theme "doom-atom"
       :config
       (progn
         (treemacs-create-icon
-         :icon (format " %s\t" (all-the-icons-octicon "repo" :v-adjust -0.1 :face face-spec))
+         :icon (format " %s\t" (all-the-icons-octicon "repo" :height 1.2 :v-adjust -0.1 :face 'doom-themes-treemacs-root-face))
          :extensions (root))
         (treemacs-create-icon
          :icon (format "%s\t%s\t"
@@ -171,19 +197,20 @@ This is used to generate extensions for `treemacs' from `all-the-icons-icon-alis
                       "wav" "mp3" "ogg" "midi"))
         (treemacs-create-icon
          :icon (format "  %s\t" (all-the-icons-octicon "file-code" :v-adjust 0 :face face-spec))
-         :extensions ("yml" "yaml" "sh" "zsh" "fish" "c" "h" "cpp" "cxx" "hpp"
-                      "tpp" "cc" "hh" "hs" "lhs" "cabal" "py" "pyc" "rs" "el"
-                      "elc" "clj" "cljs" "cljc" "ts" "tsx" "vue" "css" "html"
-                      "htm" "dart" "java" "kt" "scala" "sbt" "go" "js" "jsx"
-                      "hy" "json" "jl" "ex" "exs" "eex" "ml" "mli" "pp" "dockerfile"
-                      "vagrantfile" "j2" "jinja2" "tex" "racket" "rkt" "rktl" "rktd"
-                      "scrbl" "scribble" "plt" "makefile" "elm" "xml" "xsl" "rb"
-                      "scss" "lua" "lisp" "scm" "sql" "toml" "nim" "pl" "pm" "perl"
-                      "vimrc" "tridactylrc" "vimperatorrc" "ideavimrc" "vrapperrc"
-                      "cask" "r" "re" "rei" "bashrc" "zshrc" "inputrc" "editorconfig"
-                      "gitconfig" "csv" "cabal" "kt" "kts" "nim" "nims" "pm6" "sql"
-                      "styles" "lua" "adoc" "asciidoc" "pp" "j2" "jinja2" "dockerfile"
-                      "vagrantfile" "v" "vh" "sv"))
+         :extensions ("adoc" "asciidoc" "bashrc" "c" "cabal" "cabal" "cask" "cc"
+                      "clj" "cljc" "cljs" "cpp" "css" "csv" "cxx" "dart"
+                      "dockerfile" "dockerfile" "editorconfig" "eex" "el" "elm"
+                      "ex" "exs" "fish" "gitconfig" "gitignore" "go" "h" "hh"
+                      "hpp" "hs" "htm" "html" "hy" "ideavimrc" "inputrc" "j2"
+                      "j2" "java" "jinja2" "jinja2" "jl" "js" "json" "jsx" "kt"
+                      "kt" "kts" "lhs" "lisp" "lua" "lua" "makefile" "ml" "mli"
+                      "nim" "nim" "nims" "nix" "perl" "php" "pl" "plt" "pm"
+                      "pm6" "pp" "pp" "py" "pyc" "r" "racket" "rb" "re" "rei"
+                      "rkt" "rktd" "rktl" "rs" "sbt" "scala" "scm" "scrbl"
+                      "scribble" "scss" "sh" "sql" "sql" "styles" "sv" "tex"
+                      "toml" "tpp" "tridactylrc" "ts" "tsx" "v" "vagrantfile"
+                      "vagrantfile" "vh" "vimperatorrc" "vimrc" "vrapperrc"
+                      "vue" "xml" "xsl" "yaml" "yml" "zsh" "zshrc"))
         (treemacs-create-icon
          :icon (format "  %s\t" (all-the-icons-octicon "book" :v-adjust 0 :face face-spec))
          :extensions ("lrf" "lrx" "cbr" "cbz" "cb7" "cbt" "cba" "chm" "djvu"
@@ -197,7 +224,7 @@ This is used to generate extensions for `treemacs' from `all-the-icons-icon-alis
                       "CONTRIBUTE" "LICENSE" "README" "CHANGELOG"))
         (treemacs-create-icon
          :icon (format "  %s\t" (all-the-icons-octicon "file-binary" :v-adjust 0 :face face-spec))
-         :extensions ("exe" "dll" "obj" "so" "o" "out"))
+         :extensions ("exe" "dll" "obj" "so" "o" "out" "elc"))
         (treemacs-create-icon
          :icon (format "  %s\t" (all-the-icons-octicon "file-pdf" :v-adjust 0 :face face-spec))
          :extensions ("pdf"))
@@ -213,74 +240,25 @@ This is used to generate extensions for `treemacs' from `all-the-icons-icon-alis
       :config
       (progn
         (treemacs-create-icon
-         :icon (format "%s\t%s\t"
-                       (all-the-icons-octicon "chevron-down" :height 0.75 :v-adjust 0.1 :face face-spec)
-                       (all-the-icons-faicon "cube" :v-adjust 0.1 :face 'all-the-icons-purple))
-         :extensions (tag-open))
+         :icon (format " %s\t" (all-the-icons-octicon "repo" :height 1.2 :v-adjust -0.1 :face 'doom-themes-treemacs-root-face))
+         :extensions (root))
         (treemacs-create-icon
-         :icon (format "%s\t%s\t"
-                       (all-the-icons-octicon "chevron-right" :height 0.75 :v-adjust 0.1 :face face-spec)
-                       (all-the-icons-faicon "cube" :v-adjust 0.1 :face 'all-the-icons-purple))
-         :extensions (tag-closed))
-        (treemacs-create-icon
-         :icon (format "%s " (all-the-icons-faicon "tag" :height 0.9 :face 'all-the-icons-lblue))
-         :extensions (tag-leaf))
-        (treemacs-create-icon
-         :icon (format "%s\t" (all-the-icons-octicon "flame" :v-adjust 0 :face 'all-the-icons-red))
+         :icon (format "%s\t" (all-the-icons-octicon "flame" :height 0.8 :v-adjust 0 :face 'all-the-icons-red))
          :extensions (error))
         (treemacs-create-icon
-         :icon (format "%s\t" (all-the-icons-octicon "stop" :v-adjust 0 :face 'all-the-icons-yellow))
+         :icon (format "%s\t" (all-the-icons-octicon "stop" :height 0.8 :v-adjust 0 :face 'all-the-icons-yellow))
          :extensions (warning))
         (treemacs-create-icon
          :icon (format "%s\t" (all-the-icons-octicon "info" :height 0.75 :v-adjust 0.1 :face 'all-the-icons-green))
          :extensions (info))
         (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "cabal" :face 'all-the-icons-lblue))
-         :extensions ("cabal"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "kotlin" :face 'all-the-icons-orange))
-         :extensions ("kt" "kts"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "nimrod" :face 'all-the-icons-yellow))
-         :extensions ("nim" "nims"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "perl6" :face 'all-the-icons-pink))
-         :extensions ("pm6"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-octicon "database" :face 'all-the-icons-silver))
-         :extensions ("sql"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-material "style" :face 'all-the-icons-red))
-         :extensions ("styles"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "lua" :face 'all-the-icons-dblue))
-         :extensions ("lua"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "asciidoc" :face 'all-the-icons-lblue))
-         :extensions ("adoc" "asciidoc"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "puppet" :face 'all-the-icons-yellow))
-         :extensions ("pp"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "jinja" :face 'all-the-icons-silver))
-         :extensions ("j2" "jinja2"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "dockerfile" :face 'all-the-icons-cyan))
-         :extensions ("dockerfile"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "vagrant" :face 'all-the-icons-blue))
-         :extensions ("vagrantfile"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-fileicon "verilog" :face 'all-the-icons-red))
-         :extensions ("v" "vh" "sv"))
-        (treemacs-create-icon
-         :icon (format "  %s\t" (all-the-icons-alltheicon "git" :face 'all-the-icons-red))
+         :icon (format "  %s\t" (all-the-icons-alltheicon "git" :height 0.85 :v-adjust 0.0 :face 'all-the-icons-red))
          :extensions ("gitignore" "git" "gitconfig" "gitmodules"))
 
         (dolist (item all-the-icons-icon-alist)
           (let* ((extensions (doom-themes--get-treemacs-extensions (car item)))
                  (func (cadr item))
-                 (args (append (list (caddr item)) '(:v-adjust -0.05) (cdddr item)))
+                 (args (append (list (cadr (cdr item))) '(:v-adjust -0.05 :height 0.85) (cdr (cddr item))))
                  (icon (apply func args)))
             (let* ((icon-pair (cons (format "  %s\t" icon) " "))
                    (gui-icons (treemacs-theme->gui-icons treemacs--current-theme))
@@ -289,7 +267,11 @@ This is used to generate extensions for `treemacs' from `all-the-icons-icon-alis
                    (tui-icon  (cdr icon-pair)))
               (--each extensions
                 (ht-set! gui-icons it gui-icon)
-                (ht-set! tui-icons it tui-icon))))))))
+                (ht-set! tui-icons it tui-icon)))))
+
+        (treemacs-create-icon
+         :icon (format "  %s\t" (all-the-icons-octicon "file-code" :v-adjust 0 :face face-spec))
+         :extensions ("elc")))))
 
   (treemacs-load-theme doom-themes-treemacs-theme))
 
